@@ -6,10 +6,6 @@ using UnityEngine;
 /// </summary>
 public class DeleteCffcut : MonoBehaviour
 {
-    void OnEnable()
-    {
-        gameObject.AddComponent<Rigidbody>(); //添加下落刚体重力
-    }
     void Update()
     {
         Color a = GetComponent<MeshRenderer>().material.color; //获取颜色

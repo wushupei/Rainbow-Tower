@@ -54,6 +54,8 @@
      <Compile Include="Assets\Scripts\CameraFollow.cs" />
      <Compile Include="Assets\Scripts\CubeMove.cs" />
      <Compile Include="Assets\Scripts\DeleteCffcut.cs" />
+     <Compile Include="Assets\Scripts\EffectManage.cs" />
+     <Compile Include="Assets\Scripts\PedestalManage.cs" />
  <Reference Include="UnityEditor.StandardEvents">
  <HintPath>E:/RuanJian/Unity/CubePagoda/Library/ScriptAssemblies/UnityEditor.StandardEvents.dll</HintPath>
  </Reference>

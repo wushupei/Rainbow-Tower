@@ -6,41 +6,44 @@ using UnityEngine;
 /// </summary>
 public class CameraFollow : MonoBehaviour
 {
+
+    GameObject moveCube;//声明移动方块
     public float speed; //平移速度
-    Transform topFloor; //声明顶层
     public float height; //摄像机与顶层相对高度
     public float followSpeed; //摄像机跟随顶层速度
     public float rotateSpeed; //绕顶层旋转速度  
     public float zoomSpeed; //镜头缩放速度   
     void Start()
     {
-        GameObject moveCube = GameObject.CreatePrimitive(PrimitiveType.Cube); //创建一个Cube
+        moveCube = GameObject.CreatePrimitive(PrimitiveType.Cube); //创建一个移动Cube对象
         moveCube.name = "MoveCube"; //取名
         moveCube.AddComponent<CubeMove>().speed = speed; //给Cube添加移动脚本并初始化位置
     }
     void Update()
     {
-        //获取顶层
-        topFloor = GameObject.Find("TopFloor").transform;
-
-        //摄像机始终指向顶层
-        Quaternion dir = Quaternion.LookRotation(topFloor.position - transform.position);
-        transform.rotation = Quaternion.Lerp(transform.rotation, dir, Time.deltaTime*5);
-
-        //摄像机跟随顶层高度
-        Vector3 cameraPos = transform.position; //获取摄像机坐标
-        cameraPos.y = topFloor.position.y + height; //摄像机时刻比顶层高出一定高度(跟着顶层上升)
-        transform.position = Vector3.Lerp(transform.position, cameraPos, Time.deltaTime * followSpeed); //摄像机渐变到指定高度
-
-        //按住鼠标右键移动进行绕顶层旋转
-        if (Input.GetMouseButton(1))
+        if (GameObject.Find("TopFloor")) //如果场景中有该物体,始终跟随
         {
-            float h = Input.GetAxis("Mouse X");//获取鼠标水平移动
-            transform.RotateAround(topFloor.position, Vector3.up, h * Time.deltaTime * rotateSpeed);
-        }
+            //获取顶层
+            Transform topFloor = GameObject.Find("TopFloor").transform;
+            //摄像机始终指向顶层
+            Quaternion dir = Quaternion.LookRotation(topFloor.position - transform.position);
+            transform.rotation = Quaternion.Lerp(transform.rotation, dir, Time.deltaTime * 5);
 
-        //使用鼠标滑条拉近拉远镜头
-        float slider = Input.GetAxis("Mouse ScrollWheel"); //获取滑条滚动信息
-        GetComponent<Camera>().fieldOfView -= slider * Time.deltaTime * zoomSpeed;
+            //摄像机跟随顶层高度
+            Vector3 cameraPos = transform.position; //获取摄像机坐标
+            cameraPos.y = topFloor.position.y + height; //摄像机时刻比顶层高出一定高度(跟着顶层上升)
+            transform.position = Vector3.Lerp(transform.position, cameraPos, Time.deltaTime * followSpeed); //摄像机渐变到指定高度
+
+            //按住鼠标右键移动进行绕顶层旋转
+            if (Input.GetMouseButton(1))
+            {
+                float h = Input.GetAxis("Mouse X");//获取鼠标水平移动
+                transform.RotateAround(topFloor.position, Vector3.up, h * Time.deltaTime * rotateSpeed);
+            }
+
+            //使用鼠标滑条拉近拉远镜头
+            float slider = Input.GetAxis("Mouse ScrollWheel"); //获取滑条滚动信息
+            GetComponent<Camera>().fieldOfView -= slider * Time.deltaTime * zoomSpeed;
+        }
     }
 }
