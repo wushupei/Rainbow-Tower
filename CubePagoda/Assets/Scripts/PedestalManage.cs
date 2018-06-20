@@ -7,13 +7,13 @@ using UnityEngine.UI;
 /// </summary>
 public class PedestalManage : MonoBehaviour
 {
-    List<Transform> pedestals = new List<Transform>();//创建一个集合用来管理所有底座
+    public List<Transform> pedestals = new List<Transform>();//创建一个集合用来管理所有底座
     float timer = 0.1f;
-    void Start() 
+    void Start()
     {
         pedestals.Add(GameObject.Find("TopFloor").transform);//首先将顶层添加进集合       
     }
-    //生成新顶层和边角料(大小和位置受移动Cube和原顶层的大小位置影响)
+    //生成新顶层和边角料(大小和位置受原顶层的大小和移动方块的位置影响)
     public GameObject CreateNewFoundationAndCffcut(GameObject top, GameObject moveCube)
     {
         //获取顶层位置
@@ -32,10 +32,9 @@ public class PedestalManage : MonoBehaviour
         GameObject newTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
         //加载一个边角料预制件
         GameObject cffcut = Instantiate(Resources.Load("Prefab/Cffcut") as GameObject);
-        //新顶层和边角料以及分数UI的颜色来自移动方块
+        //新顶层和边角料的颜色均来自移动方块
         newTop.GetComponent<MeshRenderer>().material.color = new Color(mColor.r, mColor.g, mColor.b);
         cffcut.GetComponent<MeshRenderer>().material.color = new Color(mColor.r, mColor.g, mColor.b);
-
 
         //获取移动方块与原顶层z轴和x轴的位置偏差
         float z_Offset = Mathf.Abs(mPos.z - tPos.z);
@@ -97,8 +96,8 @@ public class PedestalManage : MonoBehaviour
     }
     public void AllPedestalBoom() //所有底座爆炸
     {
-        timer += Time.deltaTime; //0.1秒执行一次
-        if (timer > 0.1f)
+        timer += Time.deltaTime; //0.05秒执行一次
+        if (timer > 0.05f)
             if (pedestals.Count > 0)
             {
                 Transform top = pedestals[pedestals.Count - 1]; //获取顶层
@@ -113,7 +112,7 @@ public class PedestalManage : MonoBehaviour
                 //将顶层从集合中移除并销毁
                 pedestals.Remove(top);
                 Destroy(top.gameObject);
-                timer = 0;
+                timer = 0; //计时清零
             }
     }
 }

@@ -1,26 +1,33 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 /// <summary>
-/// 不用挂,移动方块被创建后会自动添加上
+/// 挂移动方块上
 /// </summary>
 public enum CubeState
 {
     Z_Move, //z轴上移动
     X_Move, //x轴上移动
+    Pause, //暂停
     Die, //死亡
 }
 public class CubeMove : MonoBehaviour
 {
-    PedestalManage pedestal; //声明底座管理类
+    bool pause; //是否暂停
+    //记录暂停的一瞬间自身信息
+    Vector3 pos; //位置
+    Vector3 local; //尺寸
+    Vector3 euler; //旋转
+    CubeState state; //状态
 
+    PedestalManage pedestal; //声明底座管理类
     EffectManage effect = new EffectManage(); //实例化特效管理类,方便生成
     public CubeState cubeState = CubeState.Z_Move; //初始状态在Z轴移动
     Vector3 initialPos; //初始位置
     bool forward; //是否往前走
     Vector3 size; //声明自身尺寸
-    [HideInInspector]
     public float speed; //平移速度
     Color color; //移动方块颜色
 
@@ -30,22 +37,32 @@ public class CubeMove : MonoBehaviour
     int[] rgbIndex = { 0, 1, 2 }; //创建颜色索引数组
     bool reduce = true; //颜色递减
 
-    private void OnEnable()
+    public Transform mainCamera; //把主摄像机拖进去
+    public GameObject texter; //文字显示
+
+    private void Start()
     {
-        pedestal = FindObjectOfType<PedestalManage>();
+        pedestal = FindObjectOfType<PedestalManage>(); //找到底座管理脚本
         Initialization(); //初始化   
-        rgbIndex = RandomIndex(); //将索引顺序打乱
+        rgbIndex = RandomIndex(); //将颜色索引顺序打乱
     }
     void Update()
     {
+        GamePause(); //暂停方法
         switch (cubeState)
         {
+            case CubeState.Pause: //暂停状态时
+                if (pause) //pause=true时,往摄像机面前转换
+                    Transformation(mainCamera.position + mainCamera.forward * 3, new Vector3(1, 0.1f, 0.5f), new Vector3(50, 45, 0), new Color(1, 1, 1));
+                else //pause=false时
+                    Transformation(pos, local, euler, color); //往原位置转换
+                break;
             case CubeState.Die: //如果变为死亡状态
                 GameOver(); //执行死亡方法
                 break;
             default:
                 TranslationFun(); //平移
-                if (Input.GetMouseButtonDown(0))
+                if (Input.GetMouseButtonDown(0)) //按下鼠标左键,移动方块下落
                     FallingFun();
                 break;
         }
@@ -58,9 +75,9 @@ public class CubeMove : MonoBehaviour
                 if (forward) //如果确定往前走
                 {
                     transform.Translate(0, 0, Time.deltaTime * speed); //前进
-                    if (Mathf.Abs(transform.position.z - initialPos.z) >= 20)
+                    if (Mathf.Abs(transform.position.z - initialPos.z) >= 20) //前进超过20m
                     {
-                        effect.CtreateAT_Field(gameObject, Vector3.forward, size.z, 0, size.x);
+                        effect.CtreateAT_Field(gameObject, Vector3.forward, size.z, 0, size.x); //生成特效
                         forward = !forward; //变为后退状态                     
                     }
                 }
@@ -68,8 +85,8 @@ public class CubeMove : MonoBehaviour
                 {
                     transform.Translate(0, 0, -Time.deltaTime * speed); //后退
                     if (transform.position.z <= initialPos.z)  //如果退回到初始位置
-                    {
-                        effect.CtreateAT_Field(gameObject, Vector3.back, size.z, 0, size.x);
+                    { 
+                        effect.CtreateAT_Field(gameObject, Vector3.back, size.z, 0, size.x); //生成特效
                         forward = !forward; //又往前走
                     }
                 }
@@ -81,7 +98,7 @@ public class CubeMove : MonoBehaviour
                     transform.Translate(Time.deltaTime * speed, 0, 0); //前进
                     if (Mathf.Abs(transform.position.x - initialPos.x) >= 20)
                     {
-                        effect.CtreateAT_Field(gameObject, Vector3.right, size.x, 90, size.z);
+                        effect.CtreateAT_Field(gameObject, Vector3.right, size.x, 90, size.z); //生成特效
                         forward = !forward; //变为后退状态
                     }
                 }
@@ -90,7 +107,7 @@ public class CubeMove : MonoBehaviour
                     transform.Translate(-Time.deltaTime * speed, 0, 0); //后退                                                            
                     if (transform.position.x <= initialPos.x) //如果退回到初始位置
                     {
-                        effect.CtreateAT_Field(gameObject, Vector3.left, size.x, 90, size.z);
+                        effect.CtreateAT_Field(gameObject, Vector3.left, size.x, 90, size.z); //生成特效
                         forward = !forward; //又往前走
                     }
                 }
@@ -162,7 +179,6 @@ public class CubeMove : MonoBehaviour
         //将打乱后的索引成员重新赋值给索引数组
         return list2.ToArray();
     }
-
     void Reset(GameObject newTop) //重置
     {
         //切换状态
@@ -203,10 +219,76 @@ public class CubeMove : MonoBehaviour
         color = new Color(rgb[0], rgb[1], rgb[2]); //实时刷新rgb值
         GetComponent<MeshRenderer>().material.color = color;
     }
-    void GameOver()
+    void GamePause() //暂停方法
     {
+        if (Input.GetKeyDown(KeyCode.Escape)) //按下Esc键
+        {
+            if (!pause) //如果pause=false
+            {
+                if (cubeState != CubeState.Pause) //未进入暂停状态时
+                {
+                    //显示文字
+                    if (!texter.activeInHierarchy)
+                        texter.SetActive(true);
+                    //记录自身信息(位置,尺寸,旋转,状态)
+                    pos = transform.position;
+                    local = transform.localScale;
+                    euler = transform.eulerAngles;
+                    state = cubeState;
+                }
+                //暂停      
+                pause = !pause;
+                cubeState = CubeState.Pause;
+            }
+            else
+                pause = !pause;
+        }
+    }
+    void GameOver() //死亡方法
+    {
+        //添加重力组件
         if (!gameObject.GetComponent<Rigidbody>())
-            gameObject.AddComponent<Rigidbody>(); //添加重力组件
-        pedestal.AllPedestalBoom(); //所有底座爆炸
+            gameObject.AddComponent<Rigidbody>();
+        //炸毁所有底座
+        pedestal.AllPedestalBoom();
+        //当底座炸完了
+        if (pedestal.pedestals.Count == 0)
+        {
+            //显示文字
+            if (!texter.activeInHierarchy)
+                texter.SetActive(true);
+            //往摄像机面前转换
+            Transformation(mainCamera.position + mainCamera.forward * 3, new Vector3(1, 0.1f, 0.5f), new Vector3(50, 45, 0), new Color(1, 1, 1));
+        }
+    }
+    void Transformation(Vector3 pos, Vector3 local, Vector3 euler, Color color) //转换
+    {
+        //如果有重力组件则删除
+        if (gameObject.GetComponent<Rigidbody>())
+            Destroy(gameObject.GetComponent<Rigidbody>());
+        //移动方块往该处飞行转换
+        transform.position = Vector3.Lerp(transform.position, pos, 0.1f);
+        transform.localScale = Vector3.Lerp(transform.localScale, local, 0.1f);
+        transform.eulerAngles = Vector3.Lerp(transform.eulerAngles, euler, 0.1f);
+        GetComponent<MeshRenderer>().material.color = Color.Lerp(GetComponent<MeshRenderer>().material.color, color, 0.1f);
+        //如果快飞到了
+        if ((transform.position - pos).magnitude < 0.01f)
+        {
+            //确定位置尺寸旋转和颜色
+            transform.position = pos;
+            transform.localScale = local;
+            transform.eulerAngles = euler;
+            GetComponent<MeshRenderer>().material.color = color;
+            //往回转换时,禁用文字还原状态
+            if (pause == false && cubeState == CubeState.Pause)
+            {
+                texter.SetActive(false);
+                cubeState = state;               
+            }
+        }
+    }
+    public void ComeAgain() //重新开始游戏
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
